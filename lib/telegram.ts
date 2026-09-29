@@ -9,6 +9,16 @@ export async function sendTelegram(chatId: number, text: string) {
   if (!response.ok) throw new Error(`Telegram delivery failed: ${response.status} ${await response.text()}`);
 }
 
+export function parseTelegramCommand(text: string) {
+  const trimmed = text.trim();
+  const separator = trimmed.search(/\s/);
+  if (separator === -1) return { command: trimmed, raw: "" };
+  return {
+    command: trimmed.slice(0, separator),
+    raw: trimmed.slice(separator).trim(),
+  };
+}
+
 export function telegramHelp() {
   return [
     "Friends Included transaction bot",

@@ -2,7 +2,7 @@ import { AppError } from "@/lib/errors";
 import { apiError } from "@/lib/http";
 import { employeeByTelegramUser } from "@/lib/repository";
 import { submitExpense, submitSale } from "@/lib/service";
-import { sendTelegram, telegramHelp } from "@/lib/telegram";
+import { parseTelegramCommand, sendTelegram, telegramHelp } from "@/lib/telegram";
 
 type TelegramUpdate = { message?: { text?: string; chat: { id: number }; from?: { id: number } } };
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       await sendTelegram(message.chat.id, `Your Telegram user ID is ${message.from.id}. Ask the manager to link it before submitting transactions.`);
       return Response.json({ ok: true });
     }
-    const [command, raw = ""] = message.text.trim().split(/\s+/, 2);
+    const { command, raw } = parseTelegramCommand(message.text);
     if (command === "/start" || command === "/help") await sendTelegram(message.chat.id, telegramHelp());
     else if (command === "/sale") {
       const [ref, customer, project, description, amount, richardPct, anastasiaPct, jeanClaudePct] = raw.split("|");
