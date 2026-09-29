@@ -78,7 +78,30 @@ export async function updateExpense(ref: string, patch: Partial<Expense>) {
 }
 
 export async function linkTelegram(employeeId: string, telegramUserId: number, telegramChatId: number) {
-  const { data, error } = await getSupabase().from("employees")
+  const db = getSupabase();
+  const { data: employee, error: employeeError } = await db.from("employees").select("*").eq("id", employeeId).maybeSingle();
+  fail(employeeError);
+  if (!employee) throw new AppError("Employee not found.", 404);
+
+  const { data: previous, error: previousError } = await db.from("employees")
+    .select("*").eq("telegram_user_id", telegramUserId).maybeSingle();
+  fail(previousError);
+
+  if (previous && previous.id !== employeeId) {
+    const { error: unlinkError } = await db.from("employees")
+      .update({ telegram_user_id: null, telegram_chat_id: null }).eq("id", previous.id);
+    fail(unlinkError);
+  }
+
+  const { data, error } = await db.from("employees")
     .update({ telegram_user_id: telegramUserId, telegram_chat_id: telegramChatId }).eq("id", employeeId).select("*").single();
+
+  if (error && previous && previous.id !== employeeId) {
+    await db.from("employees").update({
+      telegram_user_id: previous.telegram_user_id,
+      telegram_chat_id: previous.telegram_chat_id,
+    }).eq("id", previous.id);
+  }
+
   fail(error); return data as Employee;
 }
