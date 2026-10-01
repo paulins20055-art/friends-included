@@ -4,6 +4,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import type { AppState, Employee, Expense, Sale } from "@/lib/types";
 
 const eur = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR" });
+const telegramBotUrl = "https://t.me/friends_included_arturs_bot";
+const googleSheetsUrl = "https://docs.google.com/spreadsheets/d/1lxdg7IDC3XCOdYGRSxxCnZhsyQv_HaJlzCKA5_QXYmg/edit";
 
 async function call(url: string, body?: Record<string, unknown>) {
   const response = await fetch(url, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : undefined);
@@ -73,7 +75,7 @@ export default function Home() {
 
       <footer>
         <span>{process.env.NEXT_PUBLIC_STUDENT_NAME || "Student name"} · Day 4 homework</span>
-        <div><a href={process.env.NEXT_PUBLIC_TELEGRAM_BOT_URL || "#"}>Telegram bot</a><a href={process.env.NEXT_PUBLIC_GOOGLE_SHEETS_URL || "#"}>Google Sheets</a><a href={process.env.NEXT_PUBLIC_GITHUB_URL || "#"}>GitHub</a></div>
+        <div><a href={telegramBotUrl}>Telegram bot</a><a href={googleSheetsUrl}>Google Sheets</a><a href={process.env.NEXT_PUBLIC_GITHUB_URL || "#"}>GitHub</a></div>
       </footer>
     </main>
   );
