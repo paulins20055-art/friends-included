@@ -56,6 +56,14 @@ create table if not exists public.expenses (
   approved_at timestamptz
 );
 
+-- Telegram retries webhook deliveries when it does not receive a successful
+-- acknowledgement. This durable inbox makes every update idempotent across
+-- serverless instances and deployments.
+create table if not exists public.telegram_updates (
+  update_id bigint primary key,
+  received_at timestamptz not null default now()
+);
+
 insert into public.employees (id, display_name, role) values
   ('svetlana','Svetlana de Monte Carlo','manager'),
   ('richard','Richard “Call Me Dick” Darling','sales'),
@@ -67,6 +75,7 @@ on conflict (id) do update set display_name = excluded.display_name, role = excl
 alter table public.employees enable row level security;
 alter table public.sales enable row level security;
 alter table public.expenses enable row level security;
+alter table public.telegram_updates enable row level security;
 
 -- The browser never connects directly to these tables. Server routes use the
 -- service-role key, and every write is validated again in the service layer.

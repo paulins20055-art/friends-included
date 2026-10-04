@@ -1,10 +1,10 @@
 import { AppError } from "@/lib/errors";
 import { apiError } from "@/lib/http";
-import { employeeByTelegramUser } from "@/lib/repository";
+import { claimTelegramUpdate, employeeByTelegramUser } from "@/lib/repository";
 import { submitExpense, submitSale } from "@/lib/service";
 import { parseTelegramCommand, sendTelegram, telegramHelp } from "@/lib/telegram";
 
-type TelegramUpdate = { message?: { text?: string; chat: { id: number }; from?: { id: number } } };
+type TelegramUpdate = { update_id?: number; message?: { text?: string; chat: { id: number }; from?: { id: number } } };
 
 export async function POST(request: Request) {
   let update: TelegramUpdate | null = null;
@@ -12,6 +12,8 @@ export async function POST(request: Request) {
     const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
     if (!expected || request.headers.get("x-telegram-bot-api-secret-token") !== expected) throw new AppError("Invalid webhook secret.", 401);
     update = await request.json() as TelegramUpdate;
+    if (!Number.isSafeInteger(update.update_id)) throw new AppError("Invalid Telegram update.", 400);
+    if (!await claimTelegramUpdate(update.update_id as number)) return Response.json({ ok: true, duplicate: true });
     const message = update.message;
     if (!message?.text || !message.from) return Response.json({ ok: true });
     const employee = await employeeByTelegramUser(message.from.id);
@@ -30,9 +32,10 @@ export async function POST(request: Request) {
     } else await sendTelegram(message.chat.id, telegramHelp());
     return Response.json({ ok: true });
   } catch (error) {
+    if (!update) return apiError(error);
     try {
       if (update?.message?.chat.id) await sendTelegram(update.message.chat.id, error instanceof Error ? error.message : "Submission failed.");
-    } catch { /* Telegram will retry non-2xx failures. */ }
-    return apiError(error);
+    } catch { /* Acknowledge the update even if Telegram itself is unavailable. */ }
+    return Response.json({ ok: true });
   }
 }

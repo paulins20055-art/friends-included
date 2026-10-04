@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test --test-isolation=none lib/business.node.test.ts lib/telegram.node.test.ts"
+    "test": "node --experimental-strip-types --test --test-isolation=none lib/business.node.test.ts lib/telegram.node.test.ts lib/access.node.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

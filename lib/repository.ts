@@ -47,6 +47,14 @@ export async function employeeByTelegramUser(userId: number) {
   fail(error); return data as Employee | null;
 }
 
+export async function claimTelegramUpdate(updateId: number) {
+  const { error } = await getSupabase().from("telegram_updates").insert({ update_id: updateId });
+  if (!error) return true;
+  if (error.code === "23505" || error.message.toLowerCase().includes("duplicate")) return false;
+  fail(error);
+  return false;
+}
+
 export async function insertSale(row: Omit<Sale, "submitted_at" | "approved_at">) {
   const { data, error } = await getSupabase().from("sales").insert(row).select("*").single();
   fail(error); return numericSale(data) as Sale;
@@ -104,4 +112,16 @@ export async function linkTelegram(employeeId: string, telegramUserId: number, t
   }
 
   fail(error); return data as Employee;
+}
+
+export async function unlinkTelegramIfMatches(employeeId: string, telegramUserId: number, telegramChatId: number) {
+  const { data, error } = await getSupabase().from("employees")
+    .update({ telegram_user_id: null, telegram_chat_id: null })
+    .eq("id", employeeId)
+    .eq("telegram_user_id", telegramUserId)
+    .eq("telegram_chat_id", telegramChatId)
+    .select("id");
+  fail(error);
+  if (!data?.length) throw new AppError("Nothing was removed: the employee and both Telegram IDs did not match the current binding.", 409);
+  return { ok: true, employeeId };
 }

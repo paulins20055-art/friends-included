@@ -25,9 +25,9 @@ export default function Home() {
   const [tab, setTab] = useState<"overview" | "submit" | "manager" | "records" | "setup">("overview");
 
   const refresh = useCallback(async () => {
-    try { setState(await call("/api/state")); setError(""); }
+    try { setState(await call(`/api/state?actorId=${encodeURIComponent(role)}`)); setError(""); }
     catch (err) { setError(err instanceof Error ? err.message : "Could not load data."); }
-  }, []);
+  }, [role]);
   useEffect(() => { void refresh(); }, [refresh]);
   const employee = state?.employees.find((item) => item.id === role);
 
@@ -44,7 +44,7 @@ export default function Home() {
         <a className="brand" href="#top"><span className="brandMark">FI</span><span>Friends Included<small>Finance desk</small></span></a>
         <div className="identity">
           <label htmlFor="role">Demonstration role</label>
-          <select id="role" value={role} onChange={(event) => setRole(event.target.value)}>
+          <select id="role" value={role} onChange={(event) => { setState(null); setRole(event.target.value); }}>
             {(state?.employees ?? fallbackEmployees).map((person) => <option key={person.id} value={person.id}>{person.display_name}</option>)}
           </select>
           <span className={`role role-${employee?.role ?? "manager"}`}>{employee?.role ?? "manager"}</span>
@@ -155,9 +155,11 @@ function Records({state,role,busy,action}:{state:AppState;role:string;busy:boole
 function SetupBlock({compact=false,state,role,busy=false,action}:{compact?:boolean;state?:AppState;role?:string;busy?:boolean;action?:(w:()=>Promise<unknown>,m:string)=>Promise<void>}) {
   const manager=state?.employees.find(e=>e.id===role)?.role==='manager';
   function link(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!action||!role)return;const f=new FormData(event.currentTarget);void action(()=>call('/api/employees/link-telegram',{actorId:role,employeeId:input(f,'employeeId'),telegramUserId:input(f,'telegramUserId'),telegramChatId:input(f,'telegramChatId')}),'Telegram account linked.');}
+  function unlink(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!action||!role)return;const f=new FormData(event.currentTarget);void action(()=>call('/api/employees/unlink-telegram',{actorId:role,employeeId:input(f,'employeeId'),telegramUserId:input(f,'telegramUserId'),telegramChatId:input(f,'telegramChatId')}),'Matching reviewer Telegram link removed.');}
   return <section className={`panel setup ${compact?'compact':''}`}><div><p className="eyebrow">Connection checklist</p><h2>{compact?'Connect Supabase to load the app':'Finish the live connections'}</h2><p>The code is ready for credentials. Secrets belong in local and Vercel environment variables, never in GitHub.</p>
     {state&&<form className="linkForm" onSubmit={link}><h3>Manager Telegram setup</h3><p>Link a real Telegram sender to one fictional employee.</p><fieldset disabled={!manager||busy}><label>Employee<select name="employeeId">{state.employees.map(e=><option value={e.id} key={e.id}>{e.display_name}</option>)}</select></label><label>Telegram user ID<input name="telegramUserId" inputMode="numeric" required/></label><label>Telegram chat ID<input name="telegramChatId" inputMode="numeric" required/></label><button className="primary">Link account</button></fieldset>{!manager&&<p className="locked">Select Svetlana to manage Telegram links.</p>}</form>}
-  </div><ol><li><b>Supabase</b><span>Run <code>supabase/schema.sql</code>, then copy the project URL and service-role key.</span></li><li><b>Google Sheets</b><span>Create Sales and Expenses tabs, share the file with the service account, and add its credentials.</span></li><li><b>Telegram</b><span>Create a bot, add its token and webhook secret, then point its webhook to <code>/api/telegram/webhook</code>.</span></li><li><b>Vercel</b><span>Add all values from <code>.env.example</code> and deploy.</span></li></ol></section> }
+    {state&&<form className="linkForm" onSubmit={unlink}><h3>Safe reviewer cleanup</h3><p>Removes a test binding only when the employee, Telegram user ID and chat ID all match the current binding. It never guesses or removes a different account.</p><fieldset disabled={!manager||busy}><label>Fictional employee<select name="employeeId">{state.employees.map(e=><option value={e.id} key={e.id}>{e.display_name}</option>)}</select></label><label>Reviewer user ID<input name="telegramUserId" inputMode="numeric" required/></label><label>Reviewer chat ID<input name="telegramChatId" inputMode="numeric" required/></label><button className="primary">Remove exact matching link</button></fieldset></form>}
+  </div><div><h3>Reviewer instructions</h3><ol><li><b>Select a fictional employee</b><span>Use Svetlana only for manager actions; employee views receive only their own permitted records from the server.</span></li><li><b>Test Telegram once</b><span>Send one unique sale or expense reference. One update is accepted once, even if Telegram retries delivery.</span></li><li><b>Make the decision</b><span>Approve or allocate it in the Manager tab and verify the single decision reply in Telegram.</span></li><li><b>Verify the ledger</b><span>Open the Viewer Google Sheet and compare the Sales or Expenses row.</span></li><li><b>Clean up safely</b><span>Use the exact-match form at left with the same employee, user ID and chat ID. A mismatch removes nothing.</span></li></ol></div></section> }
 function Empty({text}:{text:string}){return <p className="empty">{text}</p>}
 
 const fallbackEmployees: Employee[] = [
