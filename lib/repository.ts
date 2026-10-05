@@ -55,6 +55,25 @@ export async function claimTelegramUpdate(updateId: number) {
   return false;
 }
 
+export async function completeTelegramUpdate(updateId: number, command: string, reference: string | null, outcome: string) {
+  const { error } = await getSupabase().from("telegram_updates").update({
+    command,
+    reference,
+    outcome,
+    replied_at: new Date().toISOString(),
+  }).eq("update_id", updateId);
+  fail(error);
+}
+
+export async function telegramEvidenceByRef(reference: string) {
+  const { data, error } = await getSupabase().from("telegram_updates")
+    .select("received_at,replied_at,outcome")
+    .eq("reference", reference)
+    .order("received_at", { ascending: true });
+  fail(error);
+  return data ?? [];
+}
+
 export async function insertSale(row: Omit<Sale, "submitted_at" | "approved_at">) {
   const { data, error } = await getSupabase().from("sales").insert(row).select("*").single();
   fail(error); return numericSale(data) as Sale;

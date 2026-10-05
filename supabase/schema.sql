@@ -61,8 +61,18 @@ create table if not exists public.expenses (
 -- serverless instances and deployments.
 create table if not exists public.telegram_updates (
   update_id bigint primary key,
-  received_at timestamptz not null default now()
+  received_at timestamptz not null default now(),
+  command text,
+  reference text,
+  outcome text,
+  replied_at timestamptz
 );
+
+alter table public.telegram_updates add column if not exists command text;
+alter table public.telegram_updates add column if not exists reference text;
+alter table public.telegram_updates add column if not exists outcome text;
+alter table public.telegram_updates add column if not exists replied_at timestamptz;
+create index if not exists telegram_updates_reference_idx on public.telegram_updates(reference);
 
 insert into public.employees (id, display_name, role) values
   ('svetlana','Svetlana de Monte Carlo','manager'),
